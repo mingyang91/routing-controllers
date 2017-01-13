@@ -161,8 +161,14 @@ export class KoaDriver extends BaseDriver implements Driver {
             case ParamTypes.PARAM:
                 return context.params[param.name];
             case ParamTypes.SESSION:
-                throw new Error("@Session decorator is not supported by KoaDriver yet.");
-                // TODO return session
+                if (context.session === undefined) {
+                    throw new Error("Session is undefined! Is any Session-Middleware exist?");
+                }
+                if (param.name) {
+                    return context.session[param.name]; 
+                } else {
+                    return context.session;
+                }
             case ParamTypes.QUERY:
                 return context.query[param.name];
             case ParamTypes.UPLOADED_FILE:

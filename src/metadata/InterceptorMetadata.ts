@@ -1,7 +1,8 @@
-import {getFromContainer} from "../container";
-import {InterceptorInterface} from "../middleware/InterceptorInterface";
-import {InterceptorMetadataArgs} from "./args/InterceptorMetadataArgs";
+import {UseInterceptorMetadataArgs} from "./args/UseInterceptorMetadataArgs";
 
+/**
+ * "Use interceptor" metadata.
+ */
 export class InterceptorMetadata {
 
     // -------------------------------------------------------------------------
@@ -9,17 +10,27 @@ export class InterceptorMetadata {
     // -------------------------------------------------------------------------
 
     /**
-     * Indicates if this interceptor is global, thous applied to all routes.
-     */
-    isGlobal: boolean;
-
-    /**
      * Object class of the interceptor class.
      */
     target: Function;
 
     /**
-     * Execution priority of the interceptor.
+     * Method used by this "use".
+     */
+    method: string;
+
+    /**
+     * Interceptor class or function to be executed by this "use".
+     */
+    interceptor: Function;
+
+    /**
+     * Indicates if this interceptor is global or not.
+     */
+    global: boolean;
+
+    /**
+     * Interceptor priority. Used for global interceptors.
      */
     priority: number;
 
@@ -27,18 +38,12 @@ export class InterceptorMetadata {
     // Constructor
     // -------------------------------------------------------------------------
     
-    constructor(args: InterceptorMetadataArgs) {
-        this.isGlobal = args.isGlobal;
+    constructor(args: UseInterceptorMetadataArgs) {
         this.target = args.target;
+        this.method = args.method;
+        this.interceptor = args.interceptor;
         this.priority = args.priority;
-    }
-
-    // -------------------------------------------------------------------------
-    // Accessors
-    // -------------------------------------------------------------------------
-
-    get instance(): InterceptorInterface {
-        return getFromContainer<InterceptorInterface>(this.target);
+        this.global = args.global;
     }
     
 }

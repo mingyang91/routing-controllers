@@ -1,10 +1,12 @@
 import "reflect-metadata";
-import {Controller} from "../../src/decorator/controllers";
-import {Get} from "../../src/decorator/methods";
-import {createExpressServer, defaultMetadataArgsStorage, createKoaServer} from "../../src/index";
+import {createExpressServer, createKoaServer, getMetadataArgsStorage} from "../../src/index";
 import {assertRequest} from "./test-utils";
-import {UseInterceptor, Interceptor, InterceptorGlobal} from "../../src/decorator/decorators";
-import {InterceptorInterface} from "../../src/middleware/InterceptorInterface";
+import {InterceptorInterface} from "../../src/InterceptorInterface";
+import {Interceptor} from "../../src/decorator/Interceptor";
+import {UseInterceptor} from "../../src/decorator/UseInterceptor";
+import {Controller} from "../../src/decorator/Controller";
+import {Get} from "../../src/decorator/Get";
+import {Action} from "../../src/Action";
 const chakram = require("chakram");
 const expect = chakram.expect;
 
@@ -13,32 +15,29 @@ describe("interceptor", () => {
     before(() => {
 
         // reset metadata args storage
-        defaultMetadataArgsStorage().reset();
+        getMetadataArgsStorage().reset();
 
-        @InterceptorGlobal()
+        @Interceptor()
         class NumbersInterceptor implements InterceptorInterface {
-            intercept(request: any, response: any, result: any): any {
+            intercept(action: Action, result: any): any {
                 return result.replace(/[0-9]/gi, "");
             }
         }
 
-        @Interceptor()
         class ByeWordInterceptor implements InterceptorInterface {
-            intercept(request: any, response: any, result: any): any {
+            intercept(action: Action, result: any): any {
                 return result.replace(/bye/gi, "hello");
             }
         }
 
-        @Interceptor()
         class BadWordsInterceptor implements InterceptorInterface {
-            intercept(request: any, response: any, result: any): any {
+            intercept(action: Action, result: any): any {
                 return result.replace(/damn/gi, "***");
             }
         }
 
-        @Interceptor()
         class AsyncInterceptor implements InterceptorInterface {
-            intercept(request: any, response: any, result: any): any {
+            intercept(action: Action, result: any): any {
                 return new Promise(ok => {
                     setTimeout(() => {
                         ok(result.replace(/hello/gi, "bye"));
@@ -52,7 +51,7 @@ describe("interceptor", () => {
         class HandledController {
 
             @Get("/users")
-            @UseInterceptor((request: any, response: any, result: any) => {
+            @UseInterceptor((action: Action, result: any) => {
                 return result.replace(/hello/gi, "hello world");
             })
             getUsers(): any {

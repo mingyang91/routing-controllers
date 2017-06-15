@@ -11,7 +11,7 @@ export interface InterceptorMetadataArgs {
     /**
      * Indicates if this interceptor is global, thous applied to all routes.
      */
-    isGlobal: boolean;
+    global: boolean;
 
     /**
      * Execution priority of the interceptor.

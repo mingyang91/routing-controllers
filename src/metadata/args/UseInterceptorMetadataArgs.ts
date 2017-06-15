@@ -20,4 +20,14 @@ export interface UseInterceptorMetadataArgs {
      */
     interceptor: Function;
 
+    /**
+     * Indicates if this interceptor is global, thous applied to all routes.
+     */
+    global?: boolean;
+
+    /**
+     * Execution priority of the interceptor.
+     */
+    priority?: number;
+
 }

@@ -1,5 +1,7 @@
 import {ClassTransformOptions} from "class-transformer";
-import {ValidationOptions} from "class-validator";
+import {ValidatorOptions} from "class-validator";
+import {AuthorizationChecker} from "./AuthorizationChecker";
+import {CurrentUserChecker} from "./CurrentUserChecker";
 
 /**
  * Routing controller initialization options.
@@ -7,55 +9,35 @@ import {ValidationOptions} from "class-validator";
 export interface RoutingControllersOptions {
 
     /**
-     * List of directories from where to "require" all your controllers.
+     * Indicates if cors are enabled.
+     * This requires installation of additional module (cors for express and kcors for koa).
      */
-    controllers?: string[];
+    cors?: boolean|Object;
 
     /**
-     * List of directories from where to "require" all your middlewares.
+     * Global route prefix, for example '/api'.
      */
-    middlewares?: string[];
+    routePrefix?: string;
 
     /**
-     * List of directories from where to "require" all your interceptors.
+     * List of controllers to register in the framework or directories from where to import all your controllers.
      */
-    interceptors?: string[];
+    controllers?: Function[]|string[];
 
     /**
-     * List of directories from where to "require" all your controllers.
-     *
-     * @deprecated Use controllers instead.
+     * List of middlewares to register in the framework or directories from where to import all your middlewares.
      */
-    controllerDirs?: string[];
+    middlewares?: Function[]|string[];
 
     /**
-     * List of directories from where to "require" all your middlewares.
-     *
-     * @deprecated Use middlewares instead.
+     * List of interceptors to register in the framework or directories from where to import all your interceptors.
      */
-    middlewareDirs?: string[];
+    interceptors?: Function[]|string[];
 
     /**
-     * List of directories from where to "require" all your interceptors.
-     *
-     * @deprecated Use interceptors instead.
+     * Indicates if class-transformer should be used to perform serialization / deserialization.
      */
-    interceptorDirs?: string[];
-
-    /**
-     * Indicates if constructor-utils should be used to perform serialization / deserialization.
-     */
-    useClassTransformer?: boolean;
-
-    /**
-     * Indicates if class-validator should be used to auto validate objects injected into params.
-     */
-    enableValidation?: boolean;
-
-    /**
-     * Global class-validator options passed during validate operation.
-     */
-    validationOptions?: ValidationOptions;
+    classTransformer?: boolean;
 
     /**
      * Global class transformer options passed to class-transformer during classToPlain operation.
@@ -70,23 +52,37 @@ export interface RoutingControllersOptions {
     plainToClassTransformOptions?: ClassTransformOptions;
 
     /**
-     * Indicates if development mode is enabled. By default its enabled if your NODE_ENV is not equal to "production".
+     * Indicates if class-validator should be used to auto validate objects injected into params.
+     * You can also directly pass validator options to enable validator with a given options.
      */
-    developmentMode?: boolean;
+    validation?: boolean|ValidatorOptions;
 
     /**
-     * Indicates if default routing-controller's error handler is enabled or not. By default its enabled.
+     * Indicates if development mode is enabled.
+     * By default its enabled if your NODE_ENV is not equal to "production".
+     */
+    development?: boolean;
+
+    /**
+     * Indicates if default routing-controller's error handler is enabled or not.
+     * Enabled by default.
      */
     defaultErrorHandler?: boolean;
 
     /**
      * Map of error overrides.
      */
-    errorOverridingMap?: Object;
-    
+    errorOverridingMap?: { [key: string]: any };
+
     /**
-     * Route prefix. eg '/api'
+     * Special function used to check user authorization roles per request.
+     * Must return true or promise with boolean true resolved for authorization to succeed.
      */
-    routePrefix?: string;
+    authorizationChecker?: AuthorizationChecker;
+
+    /**
+     * Special function used to get currently authorized user.
+     */
+    currentUserChecker?: CurrentUserChecker;
     
 }

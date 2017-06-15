@@ -1,22 +1,17 @@
 import "reflect-metadata";
 import {Length} from "class-validator";
-import {JsonController} from "../../src/decorator/controllers";
-import {Get} from "../../src/decorator/methods";
-import {
-    createExpressServer,
-    defaultMetadataArgsStorage,
-    createKoaServer,
-    RoutingControllersOptions
-} from "../../src/index";
-import {QueryParam} from "../../src/decorator/params";
+import {JsonController} from "../../src/decorator/JsonController";
+import {createExpressServer, createKoaServer, getMetadataArgsStorage} from "../../src/index";
 import {assertRequest} from "./test-utils";
-import {Expose} from "class-transformer";
 import {defaultMetadataStorage} from "class-transformer/storage";
-import {ResponseClassTransformOptions} from "../../src/decorator/decorators";
+import {Get} from "../../src/decorator/Get";
+import {QueryParam} from "../../src/decorator/QueryParam";
+import {ResponseClassTransformOptions} from "../../src/decorator/ResponseClassTransformOptions";
+import {RoutingControllersOptions} from "../../src/RoutingControllersOptions";
 const chakram = require("chakram");
 const expect = chakram.expect;
 
-describe("class transformer validator options", () => {
+describe("parameters auto-validation", () => {
 
     class UserFilter {
         @Length(5, 15)
@@ -37,53 +32,6 @@ describe("class transformer validator options", () => {
         defaultMetadataStorage.clear();
     });
 
-    describe("should not use any options if not set", () => {
-
-        let requestFilter: any;
-        beforeEach(() => {
-            requestFilter = undefined;
-        });
-
-        before(() => {
-            defaultMetadataArgsStorage().reset();
-
-            @JsonController()
-            class UserController {
-
-                @Get("/user")
-                getUsers(@QueryParam("filter") filter: UserFilter): any {
-                    requestFilter = filter;
-                    const user = new UserModel();
-                    user.id = 1;
-                    user._firstName = "Umed";
-                    user._lastName = "Khudoiberdiev";
-                    return user;
-                }
-
-            }
-        });
-
-        let expressApp: any, koaApp: any;
-        before(done => expressApp = createExpressServer().listen(3001, done));
-        after(done => expressApp.close(done));
-        before(done => koaApp = createKoaServer().listen(3002, done));
-        after(done => koaApp.close(done));
-
-        assertRequest([3001, 3002], "get", "user?filter={\"keyword\": \"Um\", \"__somethingPrivate\": \"blablabla\"}", response => {
-            expect(response).to.have.status(200);
-            expect(response.body).to.be.eql({
-                id: 1,
-                _firstName: "Umed",
-                _lastName: "Khudoiberdiev"
-            });
-            requestFilter.should.be.instanceOf(UserFilter);
-            requestFilter.should.be.eql({
-                keyword: "Um",
-                __somethingPrivate: "blablabla",
-            });
-        });
-    });
-
     describe("should apply global validation enable", () => {
 
         let requestFilter: any;
@@ -92,7 +40,7 @@ describe("class transformer validator options", () => {
         });
 
         before(() => {
-            defaultMetadataArgsStorage().reset();
+            getMetadataArgsStorage().reset();
 
             @JsonController()
             class ClassTransformUserController {
@@ -111,7 +59,7 @@ describe("class transformer validator options", () => {
         });
 
         const options: RoutingControllersOptions = {
-            enableValidation: true
+            validation: true
         };
 
         let expressApp: any, koaApp: any;
@@ -134,7 +82,7 @@ describe("class transformer validator options", () => {
         });
 
         before(() => {
-            defaultMetadataArgsStorage().reset();
+            getMetadataArgsStorage().reset();
 
             @JsonController()
             class ClassTransformUserController {
@@ -165,6 +113,50 @@ describe("class transformer validator options", () => {
         });
     });
 
+    describe("should apply global validation options", () => {
+
+        let requestFilter: any;
+        beforeEach(() => {
+            requestFilter = undefined;
+        });
+
+        before(() => {
+            getMetadataArgsStorage().reset();
+
+            @JsonController()
+            class ClassTransformUserController {
+
+                @Get("/user")
+                getUsers(@QueryParam("filter") filter: UserFilter): any {
+                    requestFilter = filter;
+                    const user = new UserModel();
+                    user.id = 1;
+                    user._firstName = "Umed";
+                    user._lastName = "Khudoiberdiev";
+                    return user;
+                }
+
+            }
+        });
+
+        const options: RoutingControllersOptions = {
+            validation: {
+                skipMissingProperties: true
+            }
+        };
+
+        let expressApp: any, koaApp: any;
+        before(done => expressApp = createExpressServer(options).listen(3001, done));
+        after(done => expressApp.close(done));
+        before(done => koaApp = createKoaServer(options).listen(3002, done));
+        after(done => koaApp.close(done));
+
+        assertRequest([3001, 3002], "get", "user?filter={\"notKeyword\": \"Um\", \"__somethingPrivate\": \"blablabla\"}", response => {
+            expect(response).to.have.status(200);
+            expect(requestFilter).to.have.property("notKeyword");
+        });
+    });
+
     describe("should pass the valid param after validation", () => {
 
         let requestFilter: any;
@@ -173,7 +165,7 @@ describe("class transformer validator options", () => {
         });
 
         before(() => {
-            defaultMetadataArgsStorage().reset();
+            getMetadataArgsStorage().reset();
 
             @JsonController()
             class UserController {
@@ -192,7 +184,7 @@ describe("class transformer validator options", () => {
         });
 
         const options: RoutingControllersOptions = {
-            enableValidation: true
+            validation: true
         };
 
         let expressApp: any, koaApp: any;

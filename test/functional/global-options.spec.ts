@@ -1,8 +1,8 @@
 import "reflect-metadata";
-import {JsonController} from "../../src/decorator/controllers";
-import {Post} from "../../src/decorator/methods";
-import {createExpressServer, defaultMetadataArgsStorage, createKoaServer} from "../../src/index";
-import {Body} from "../../src/decorator/params";
+import {JsonController} from "../../src/decorator/JsonController";
+import {Post} from "../../src/decorator/Post";
+import {Body} from "../../src/decorator/Body";
+import {createExpressServer, createKoaServer, getMetadataArgsStorage} from "../../src/index";
 import {assertRequest} from "./test-utils";
 const chakram = require("chakram");
 const expect = chakram.expect;
@@ -26,13 +26,19 @@ describe("routing-controllers global options", () => {
     before(() => {
 
         // reset metadata args storage
-        defaultMetadataArgsStorage().reset();
+        getMetadataArgsStorage().reset();
 
         @JsonController()
         class TestUserController {
 
             @Post("/users")
             postUsers(@Body() user: User) {
+                initializedUser = user;
+                return "";
+            }
+            
+            @Post(new RegExp("/(prefix|regex)/users"))
+            postUsersWithRegex(@Body() user: User) {
                 initializedUser = user;
                 return "";
             }
@@ -57,9 +63,9 @@ describe("routing-controllers global options", () => {
     describe("when useClassTransformer is set to true", () => {
 
         let expressApp: any, koaApp: any;
-        before(done => expressApp = createExpressServer({ useClassTransformer: true }).listen(3001, done));
+        before(done => expressApp = createExpressServer({ classTransformer: true }).listen(3001, done));
         after(done => expressApp.close(done));
-        before(done => koaApp = createKoaServer({ useClassTransformer: true }).listen(3002, done));
+        before(done => koaApp = createKoaServer({ classTransformer: true }).listen(3002, done));
         after(done => koaApp.close(done));
 
         assertRequest([3001, 3002], "post", "users", { firstName: "Umed", lastName: "Khudoiberdiev" }, response => {
@@ -71,9 +77,9 @@ describe("routing-controllers global options", () => {
     describe("when useClassTransformer is not set", () => {
 
         let expressApp: any, koaApp: any;
-        before(done => expressApp = createExpressServer({ useClassTransformer: false }).listen(3001, done));
+        before(done => expressApp = createExpressServer({ classTransformer: false }).listen(3001, done));
         after(done => expressApp.close(done));
-        before(done => koaApp = createKoaServer({ useClassTransformer: false }).listen(3002, done));
+        before(done => koaApp = createKoaServer({ classTransformer: false }).listen(3002, done));
         after(done => koaApp.close(done));
     
         assertRequest([3001, 3002], "post", "users", { firstName: "Umed", lastName: "Khudoiberdiev" }, response => {
@@ -84,13 +90,20 @@ describe("routing-controllers global options", () => {
 
     describe("when routePrefix is used all controller routes should be appended by it", () => {
     
-        let expressApp: any, koaApp: any;
-        before(done => expressApp = createExpressServer({ routePrefix: "/api" }).listen(3001, done));
-        after(done => expressApp.close(done));
-        before(done => koaApp = createKoaServer({ routePrefix: "/api" }).listen(3002, done));
-        after(done => koaApp.close(done));
+        let apps: any[] = [];
+        before(done => apps.push(createExpressServer({ routePrefix: "/api" }).listen(3001, done)));
+        before(done => apps.push(createExpressServer({ routePrefix: "api" }).listen(3002, done)));
+        before(done => apps.push(createKoaServer({ routePrefix: "/api" }).listen(3003, done)));
+        before(done => apps.push(createKoaServer({ routePrefix: "api" }).listen(3004, done)));
+        after(done => { apps.forEach(app => app.close()); done(); });
     
-        assertRequest([3001, 3002], "post", "api/users", { firstName: "Umed", lastName: "Khudoiberdiev" }, response => {
+        assertRequest([3001, 3002, 3003, 3004], "post", "api/users", { firstName: "Umed", lastName: "Khudoiberdiev" }, response => {
+            expect(initializedUser).to.be.instanceOf(User);
+            expect(response).to.have.status(200);
+        });
+
+        assertRequest([3001, 3002, 3003, 3004], "post", "api/regex/users", { firstName: "Umed", lastName: "Khudoiberdiev" }, response => {
+            expect(initializedUser).to.be.instanceOf(User);
             expect(response).to.have.status(200);
         });
     });

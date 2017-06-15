@@ -1,10 +1,11 @@
-import {ValidationOptions} from "class-validator";
+import {ValidatorOptions} from "class-validator";
 import {ActionMetadata} from "../metadata/ActionMetadata";
 import {ParamMetadata} from "../metadata/ParamMetadata";
 import {MiddlewareMetadata} from "../metadata/MiddlewareMetadata";
-import {ActionCallbackOptions} from "../ActionCallbackOptions";
+import {Action} from "../Action";
 import {ClassTransformOptions} from "class-transformer";
-import {InterceptorMetadata} from "../metadata/InterceptorMetadata";
+import {AuthorizationChecker} from "../AuthorizationChecker";
+import {CurrentUserChecker} from "../CurrentUserChecker";
 
 /**
  * Abstract layer to organize controllers integration with different http server implementations.
@@ -24,7 +25,7 @@ export interface Driver {
     /**
      * Global class-validator options passed during validate operation.
      */
-    validationOptions: ValidationOptions;
+    validationOptions: ValidatorOptions;
 
     /**
      * Global class transformer options passed to class-transformer during classToPlain operation.
@@ -58,25 +59,37 @@ export interface Driver {
      */
     routePrefix: string;
 
-    bootstrap(): void;
-
     /**
-     * Registers given error handler in the driver.
+     * Indicates if cors are enabled.
+     * This requires installation of additional module (cors for express and kcors for koa).
      */
-    registerErrorHandler(middleware: MiddlewareMetadata): void;
+    cors?: boolean|Object;
 
     /**
-     * Registers middleware that run before controller actions.
+     * Special function used to check user authorization roles per request.
+     * Must return true or promise with boolean true resolved for authorization to succeed.
+     */
+    authorizationChecker?: AuthorizationChecker;
+
+    /**
+     * Special function used to get currently authorized user.
+     */
+    currentUserChecker?: CurrentUserChecker;
+
+    /**
+     * Initializes the things driver needs before routes and middleware registration.
+     */
+    initialize(): void;
+
+    /**
+     * Registers given middleware.
      */
     registerMiddleware(middleware: MiddlewareMetadata): void;
 
     /**
      * Registers action in the driver.
      */
-    registerAction(action: ActionMetadata,
-                   middlewares: MiddlewareMetadata[],
-                   interceptors: InterceptorMetadata[],
-                   executeCallback: (options: ActionCallbackOptions) => any): void;
+    registerAction(action: ActionMetadata, executeCallback: (options: Action) => any): void;
 
     /**
      * Registers all routes in the framework.
@@ -86,16 +99,16 @@ export interface Driver {
     /**
      * Gets param from the request.
      */
-    getParamFromRequest(actionOptions: ActionCallbackOptions, param: ParamMetadata): void;
+    getParamFromRequest(actionOptions: Action, param: ParamMetadata): any;
 
     /**
      * Defines an algorithm of how to handle error during executing controller action.
      */
-    handleError(error: any, action: ActionMetadata, options: ActionCallbackOptions): void;
+    handleError(error: any, action: ActionMetadata, options: Action): any;
 
     /**
      * Defines an algorithm of how to handle success result of executing controller action.
      */
-    handleSuccess(result: any, action: ActionMetadata, options: ActionCallbackOptions): void;
+    handleSuccess(result: any, action: ActionMetadata, options: Action): void;
 
 }

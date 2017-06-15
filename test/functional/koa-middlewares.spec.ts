@@ -1,15 +1,12 @@
 import "reflect-metadata";
-import {Controller} from "../../src/decorator/controllers";
-import {Get} from "../../src/decorator/methods";
-import {defaultMetadataArgsStorage, createKoaServer} from "../../src/index";
-import {
-    UseBefore,
-    UseAfter,
-    Middleware,
-    MiddlewareGlobalBefore,
-    MiddlewareGlobalAfter
-} from "../../src/decorator/decorators";
-import {MiddlewareInterface} from "../../src/middleware/MiddlewareInterface";
+import {Controller} from "../../src/decorator/Controller";
+import {Get} from "../../src/decorator/Get";
+import {UseBefore} from "../../src/decorator/UseBefore";
+import {Middleware} from "../../src/decorator/Middleware";
+import {UseAfter} from "../../src/decorator/UseAfter";
+import {createKoaServer, getMetadataArgsStorage} from "../../src/index";
+import {KoaMiddlewareInterface} from "../../src/driver/koa/KoaMiddlewareInterface";
+import {NotAcceptableError} from "./../../src/http-error/NotAcceptableError";
 const chakram = require("chakram");
 const expect = chakram.expect;
 
@@ -31,14 +28,14 @@ describe("koa middlewares", () => {
         useGlobalAfter = undefined;
         useCallOrder = undefined;
     });
-    
+
     before(() => {
 
         // reset metadata args storage
-        defaultMetadataArgsStorage().reset();
+        getMetadataArgsStorage().reset();
 
-        @MiddlewareGlobalBefore()
-        class TestGlobalBeforeKoaMidleware implements MiddlewareInterface {
+        @Middleware({ type: "before" })
+        class TestGlobalBeforeKoaMidleware implements KoaMiddlewareInterface {
 
             use(context: any, next?: Function): any {
                 useGlobalBefore = true;
@@ -48,8 +45,8 @@ describe("koa middlewares", () => {
 
         }
 
-        @MiddlewareGlobalAfter()
-        class TestGlobalAfterKoaMidleware implements MiddlewareInterface {
+        @Middleware({ type: "after" })
+        class TestGlobalAfterKoaMidleware implements KoaMiddlewareInterface {
 
             use(context: any, next?: Function): any {
                 useGlobalAfter = true;
@@ -59,12 +56,19 @@ describe("koa middlewares", () => {
 
         }
 
-        @Middleware()
-        class TestLoggerKoaMiddleware implements MiddlewareInterface {
+        class TestLoggerKoaMiddleware implements KoaMiddlewareInterface {
 
             use(context: any, next?: Function): any {
                 useCustom = true;
                 return next();
+            }
+
+        }
+
+        class TestCustomMiddlewareWhichThrows implements KoaMiddlewareInterface {
+
+            use(request: any, response: any, next?: Function): any {
+                throw new NotAcceptableError('TestCustomMiddlewareWhichThrows');
             }
 
         }
@@ -121,7 +125,13 @@ describe("koa middlewares", () => {
                 useCallOrder = "setFromController";
                 return "1234";
             }
-            
+
+            @Get("/customMiddlewareWichThrows")
+            @UseBefore(TestCustomMiddlewareWhichThrows)
+            customMiddlewareWichThrows() {
+                return "1234";
+            }
+
         }
     });
 
@@ -177,6 +187,14 @@ describe("koa middlewares", () => {
                 expect(useAfter).to.be.equal(true);
                 expect(useCallOrder).to.be.equal("setFromUseAfter");
                 expect(response).to.have.status(200);
+            });
+    });
+
+    it("should handle errors in custom middlewares", () => {
+        return chakram
+            .get("http://127.0.0.1:3001/customMiddlewareWichThrows")
+            .then((response: any) => {
+                expect(response).to.have.status(406);
             });
     });
 

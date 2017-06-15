@@ -1,31 +1,30 @@
 import "reflect-metadata";
 
-import {UseBefore, Middleware} from "../../src/decorator/decorators";
-import {
-    Body,
-    BodyParam,
-    CookieParam,
-    HeaderParam,
-    Param,
-    QueryParam,
-    Req,
-    Res,
-    Session,
-    State,
-    UploadedFile,
-    UploadedFiles,
-} from "../../src/decorator/params";
-import {Get, Post} from "../../src/decorator/methods";
-import {createExpressServer, createKoaServer, defaultMetadataArgsStorage} from "../../src/index";
+import {createExpressServer, createKoaServer, getMetadataArgsStorage} from "../../src/index";
 
-import {Controller} from "../../src/decorator/controllers";
-import {JsonResponse} from "../../src/decorator/decorators";
 import {assertRequest} from "./test-utils";
+import {User} from "../fakes/global-options/User";
+import {Controller} from "../../src/decorator/Controller";
+import {Get} from "../../src/decorator/Get";
+import {Req} from "../../src/decorator/Req";
+import {Res} from "../../src/decorator/Res";
+import {Param} from "../../src/decorator/Param";
+import {Post} from "../../src/decorator/Post";
+import {UseBefore} from "../../src/decorator/UseBefore";
+import {Session} from "../../src/decorator/Session";
+import {State} from "../../src/decorator/State";
+import {QueryParam} from "../../src/decorator/QueryParam";
+import {HeaderParam} from "../../src/decorator/HeaderParam";
+import {CookieParam} from "../../src/decorator/CookieParam";
+import {Body} from "../../src/decorator/Body";
+import {BodyParam} from "../../src/decorator/BodyParam";
+import {UploadedFile} from "../../src/decorator/UploadedFile";
+import {UploadedFiles} from "../../src/decorator/UploadedFiles";
+import {ContentType} from "../../src/decorator/ContentType";
+import {JsonController} from "../../src/decorator/JsonController";
 
 const chakram = require("chakram");
 const expect = chakram.expect;
-import {MiddlewareInterface} from "../../src/middleware/MiddlewareInterface";
-import {User} from "../fakes/global-options/User";
 
 describe("action parameters", () => {
 
@@ -74,9 +73,7 @@ describe("action parameters", () => {
 
     before(() => {
         // reset metadata args storage
-        defaultMetadataArgsStorage().reset();
-
-
+        getMetadataArgsStorage().reset();
 
         const {SetStateMiddleware} = require("../fakes/global-options/koa-middlewares/SetStateMiddleware");
         const {SessionMiddleware} = require("../fakes/global-options/SessionMiddleware");
@@ -107,7 +104,7 @@ describe("action parameters", () => {
 
             @Post("/session/")
             @UseBefore(SessionMiddleware)
-            addToSession(@Session() session: Express.Session) {
+            addToSession(@Session() session: any) {
                 session["testElement"] = "@Session test";
                 session["fakeObject"] = {
                     name: "fake",
@@ -130,9 +127,23 @@ describe("action parameters", () => {
                 return `<html><body>${testElement}</body></html>`;
             }
 
+            @Get("/session-param-empty/")
+            @UseBefore(SessionMiddleware)
+            loadEmptyParamFromSession(@Session("empty", { required: false }) emptyElement: string) {
+                sessionTestElement = emptyElement;
+                return `<html><body>${emptyElement === undefined}</body></html>`;
+            }
+
+            @Get("/session-param-empty-error/")
+            @UseBefore(SessionMiddleware)
+            errorOnLoadEmptyParamFromSession(@Session("empty") emptyElement: string) {
+                sessionTestElement = emptyElement;
+                return `<html><body>${emptyElement === undefined}</body></html>`;
+            }
+
             @Get("/state")
             @UseBefore(SetStateMiddleware)
-            @JsonResponse()
+            @ContentType("application/json")
             getState(@State() state: User) {
                 return state;
             }
@@ -162,7 +173,7 @@ describe("action parameters", () => {
             }
 
             @Get("/photos-with-json")
-            getPhotosWithJsonParam(@QueryParam("filter", { parseJson: true }) filter: { keyword: string, limit: number }) {
+            getPhotosWithJsonParam(@QueryParam("filter", { parse: true }) filter: { keyword: string, limit: number }) {
                 queryParamFilter = filter;
                 return `<html><body>hello</body></html>`;
             }
@@ -184,7 +195,7 @@ describe("action parameters", () => {
             }
 
             @Get("/posts-with-json")
-            getPostsWithJsonParam(@HeaderParam("filter", { parseJson: true }) filter: { keyword: string, limit: number }) {
+            getPostsWithJsonParam(@HeaderParam("filter", { parse: true }) filter: { keyword: string, limit: number }) {
                 headerParamFilter = filter;
                 return `<html><body>hello</body></html>`;
             }
@@ -206,7 +217,7 @@ describe("action parameters", () => {
             }
 
             @Get("/questions-with-json")
-            getQuestionsWithJsonParam(@CookieParam("filter", { parseJson: true }) filter: { keyword: string, limit: number }) {
+            getQuestionsWithJsonParam(@CookieParam("filter", { parse: true }) filter: { keyword: string, limit: number }) {
                 cookieParamFilter = filter;
                 return `<html><body>hello</body></html>`;
             }
@@ -223,42 +234,6 @@ describe("action parameters", () => {
                 return `<html><body>hello</body></html>`;
             }
 
-            @Post("/posts")
-            @JsonResponse()
-            postPost(@Body() question: string) {
-                body = question;
-                return body;
-            }
-
-            @Post("/posts-with-required")
-            @JsonResponse()
-            postRequiredPost(@Body({ required: true }) post: string) {
-                body = post;
-                return body;
-            }
-
-            @Post("/users")
-            @JsonResponse()
-            postUser(@BodyParam("name") name: string, 
-                     @BodyParam("age") age: number, 
-                     @BodyParam("isActive") isActive: boolean): any {
-                bodyParamName = name;
-                bodyParamAge = age;
-                bodyParamIsActive = isActive;
-                return null;
-            }
-
-            @Post("/users-with-required")
-            @JsonResponse()
-            postUserWithRequired(@BodyParam("name", { required: true }) name: string, 
-                                 @BodyParam("age", { required: true }) age: number, 
-                                 @BodyParam("isActive", { required: true }) isActive: boolean): any {
-                bodyParamName = name;
-                bodyParamAge = age;
-                bodyParamIsActive = isActive;
-                return null;
-            }
-
             @Post("/files")
             postFile(@UploadedFile("myfile") file: any): any {
                 uploadedFileName = file.originalname;
@@ -266,7 +241,7 @@ describe("action parameters", () => {
             }
 
             @Post("/files-with-limit")
-            postFileWithLimit(@UploadedFile("myfile", { uploadOptions: { limits: { fileSize: 2 } } }) file: any): any {
+            postFileWithLimit(@UploadedFile("myfile", { options: { limits: { fileSize: 2 } } }) file: any): any {
                 return `<html><body>${file.originalname}</body></html>`;
             }
 
@@ -283,7 +258,7 @@ describe("action parameters", () => {
             }
 
             @Post("/photos-with-limit")
-            postPhotosWithLimit(@UploadedFiles("photos", { uploadOptions: { limits: { files: 1 } } }) files: any): any {
+            postPhotosWithLimit(@UploadedFiles("photos", { options: { limits: { files: 1 } } }) files: any): any {
                 return `<html><body>${files[0].originalname}</body></html>`;
             }
 
@@ -292,6 +267,48 @@ describe("action parameters", () => {
                 return `<html><body>${files[0].originalname}</body></html>`;
             }
 
+        }
+
+        @JsonController()
+        class SecondUserActionParamsController {
+
+
+            @Post("/posts")
+            postPost(@Body() question: any) {
+                body = question;
+                return body;
+            }
+
+            @Post("/posts-with-required")
+            postRequiredPost(@Body({ required: true }) post: string) {
+                body = post;
+                return body;
+            }
+
+            @Get("/posts-after")
+            getPhotosAfter(@QueryParam("from", { required: true }) from: Date): any {
+                return from.toISOString();
+            }
+
+            @Post("/users")
+            postUser(@BodyParam("name") name: string,
+                     @BodyParam("age") age: number,
+                     @BodyParam("isActive") isActive: boolean): any {
+                bodyParamName = name;
+                bodyParamAge = age;
+                bodyParamIsActive = isActive;
+                return null;
+            }
+
+            @Post("/users-with-required")
+            postUserWithRequired(@BodyParam("name", { required: true }) name: string,
+                                 @BodyParam("age", { required: true }) age: number,
+                                 @BodyParam("isActive", { required: true }) isActive: boolean): any {
+                bodyParamName = name;
+                bodyParamAge = age;
+                bodyParamIsActive = isActive;
+                return null;
+            }
         }
 
     });
@@ -356,6 +373,23 @@ describe("action parameters", () => {
         });
     });
 
+    describe("@Session(param) should allow to inject empty property", () => {
+        assertRequest([3001, 3002], "get", "session-param-empty", response => {
+            console.log(response.body);
+            expect(response).to.be.status(200);
+            expect(response).to.have.header("content-type", "text/html; charset=utf-8");
+            expect(response.body).to.be.equal("<html><body>true</body></html>");
+            expect(sessionTestElement).to.be.undefined;
+        });
+    });
+
+    describe("@Session(param) should throw required error when param is empty", () => {
+        assertRequest([3001, 3002], "get", "session-param-empty-error", response => {
+            expect(response).to.be.status(400);
+            // there should be a test for "ParamRequiredError" but chakram is the worst testing framework ever!!!
+        });
+    });
+
     describe("@State should return a value from state", () => {
         assertRequest([3001], "get", "state", response => {
             expect(response).to.be.status(500);
@@ -399,6 +433,21 @@ describe("action parameters", () => {
         });
         assertRequest([3001, 3002], "get", "photos-with-required/?limit", response => {
             expect(response).to.be.status(400);
+        });
+    });
+
+    describe("for @QueryParam when the type is Date then it should be parsed", () => {
+        assertRequest([3001, 3002], "get", "posts-after/?from=2017-01-01T00:00:00Z", response => {
+            expect(response).to.be.status(200);
+            expect(response.body).to.be.equal("2017-01-01T00:00:00.000Z");
+        });
+    });
+
+    describe("for @QueryParam when the type is Date and it is invalid then the response should be a BadRequest error", () => {
+        assertRequest([3001, 3002], "get", "posts-after/?from=InvalidDate", response => {
+            expect(response).to.be.status(400);
+            expect(response.body.name).to.be.equals("BadRequestError");
+            expect(response.body.message).to.be.equals("from is invalid! It can't be parsed to date.");
         });
     });
 

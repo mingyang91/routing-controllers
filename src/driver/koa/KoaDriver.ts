@@ -8,7 +8,7 @@ import {KoaMiddlewareInterface} from "./KoaMiddlewareInterface";
 import {AuthorizationCheckerNotDefinedError} from "../../error/AuthorizationCheckerNotDefinedError";
 import {AccessDeniedError} from "../../error/AccessDeniedError";
 import {isPromiseLike} from "../../util/isPromiseLike";
-import {getFromContainer} from "../../container";
+import {IGetFromContainer} from "../../container";
 import {RoleChecker} from "../../RoleChecker";
 import {AuthorizationRequiredError} from "../../error/AuthorizationRequiredError";
 import {HttpError, NotFoundError} from "../../index";
@@ -25,7 +25,7 @@ export class KoaDriver extends BaseDriver {
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(public koa?: any, public router?: any) {
+    constructor(public getFromContainer: IGetFromContainer, public koa?: any, public router?: any) {
         super();
         this.loadKoa();
         this.loadRouter();
@@ -79,7 +79,7 @@ export class KoaDriver extends BaseDriver {
                 const action: Action = { request: context.request, response: context.response, context, next };
                 try {
                     const checkResult = actionMetadata.authorizedRoles instanceof Function ?
-                        getFromContainer<RoleChecker>(actionMetadata.authorizedRoles).check(action) :
+                        this.getFromContainer<RoleChecker>(actionMetadata.authorizedRoles).check(action) :
                         this.authorizationChecker(action, actionMetadata.authorizedRoles);
 
                     const handleError = (result: any) => {
@@ -330,7 +330,7 @@ export class KoaDriver extends BaseDriver {
             if (use.middleware.prototype && use.middleware.prototype.use) { // if this is function instance of MiddlewareInterface
                 middlewareFunctions.push((context: any, next: (err?: any) => Promise<any>) => {
                     try {
-                        const useResult = (getFromContainer(use.middleware) as KoaMiddlewareInterface).use(context, next);
+                        const useResult = (this.getFromContainer(use.middleware) as KoaMiddlewareInterface).use(context, next);
                         if (isPromiseLike(useResult)) {
                             useResult.catch((error: any) => {
                                 this.handleError(error, undefined, {

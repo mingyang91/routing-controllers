@@ -33,7 +33,10 @@ const defaultContainer: { get<T>(someClass: { new (...args: any[]): T }|Function
     }
 })();
 
-let userContainer: { get<T>(someClass: { new (...args: any[]): T }|Function): T };
+export interface Container {
+    get<T>(someClass: { new (...args: any[]): T }|Function): T;
+}
+let userContainer: Container;
 let userContainerOptions: UseContainerOptions;
 
 /**
@@ -47,20 +50,27 @@ export function useContainer(iocContainer: { get(someClass: any): any }, options
 /**
  * Gets the IOC container used by this library.
  */
-export function getFromContainer<T>(someClass: { new (...args: any[]): T }|Function): T {
-    if (userContainer) {
-        try {
-            const instance = userContainer.get(someClass);
-            if (instance)
-                return instance;
 
-            if (!userContainerOptions || !userContainerOptions.fallback)
-                return instance;
+export interface IGetFromContainer {
+    <T>(someClass: { new (...args: any[]): T }|Function): T;
+}
 
-        } catch (error) {
-            if (!userContainerOptions || !userContainerOptions.fallbackOnErrors)
-                throw error;
+export function init (someContainer: Container = userContainer): IGetFromContainer {
+    return function getFromContainer<T>(someClass: { new (...args: any[]): T }|Function): T {
+        if (someContainer) {
+            try {
+                const instance = someContainer.get(someClass);
+                if (instance)
+                    return instance;
+    
+                if (!userContainerOptions || !userContainerOptions.fallback)
+                    return instance;
+    
+            } catch (error) {
+                if (!userContainerOptions || !userContainerOptions.fallbackOnErrors)
+                    throw error;
+            }
         }
-    }
-    return defaultContainer.get<T>(someClass);
+        return defaultContainer.get<T>(someClass);
+    };
 }

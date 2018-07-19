@@ -9,7 +9,7 @@ import {ExpressErrorMiddlewareInterface} from "./ExpressErrorMiddlewareInterface
 import {AccessDeniedError} from "../../error/AccessDeniedError";
 import {AuthorizationCheckerNotDefinedError} from "../../error/AuthorizationCheckerNotDefinedError";
 import {isPromiseLike} from "../../util/isPromiseLike";
-import {getFromContainer} from "../../container";
+import {IGetFromContainer} from "../../container";
 import {AuthorizationRequiredError} from "../../error/AuthorizationRequiredError";
 import {NotFoundError} from "../../index";
 
@@ -25,7 +25,7 @@ export class ExpressDriver extends BaseDriver {
     // Constructor
     // -------------------------------------------------------------------------
 
-    constructor(public express?: any) {
+    constructor(public getFromContainer: IGetFromContainer, public express?: any) {
         super();
         this.loadExpress();
         this.app = this.express;
@@ -386,7 +386,7 @@ export class ExpressDriver extends BaseDriver {
             if (use.middleware.prototype && use.middleware.prototype.use) { // if this is function instance of MiddlewareInterface
                 middlewareFunctions.push((request: any, response: any, next: (err: any) => any) => {
                     try {
-                        const useResult = (getFromContainer(use.middleware) as ExpressMiddlewareInterface).use(request, response, next);
+                        const useResult = (this.getFromContainer(use.middleware) as ExpressMiddlewareInterface).use(request, response, next);
                         if (isPromiseLike(useResult)) {
                             useResult.catch((error: any) => {
                                 this.handleError(error, undefined, {request, response, next});
@@ -401,8 +401,8 @@ export class ExpressDriver extends BaseDriver {
                 });
 
             } else if (use.middleware.prototype && use.middleware.prototype.error) {  // if this is function instance of ErrorMiddlewareInterface
-                middlewareFunctions.push(function (error: any, request: any, response: any, next: (err: any) => any) {
-                    return (getFromContainer(use.middleware) as ExpressErrorMiddlewareInterface).error(error, request, response, next);
+                middlewareFunctions.push((error: any, request: any, response: any, next: (err: any) => any) => {
+                    return (this.getFromContainer(use.middleware) as ExpressErrorMiddlewareInterface).error(error, request, response, next);
                 });
 
             } else {

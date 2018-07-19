@@ -3,6 +3,7 @@ import {ClassTransformOptions} from "class-transformer";
 import {CurrentUserChecker} from "./CurrentUserChecker";
 import { ParamOptions } from "./decorator-options/ParamOptions";
 import {ValidatorOptions} from "class-validator";
+import { Container } from "./container";
 
 /**
  * Routing controller initialization options.
@@ -110,4 +111,5 @@ export interface RoutingControllersOptions {
             required?: boolean;
         };
     };
+    container?: Container;
 }

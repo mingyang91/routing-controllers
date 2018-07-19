@@ -1,7 +1,7 @@
 import {ActionMetadata} from "./ActionMetadata";
 import {ControllerMetadataArgs} from "./args/ControllerMetadataArgs";
 import {UseMetadata} from "./UseMetadata";
-import {getFromContainer} from "../container";
+import {IGetFromContainer} from "../container";
 import {ResponseHandlerMetadata} from "./ResponseHandleMetadata";
 import {InterceptorMetadata} from "./InterceptorMetadata";
 
@@ -57,8 +57,8 @@ export class ControllerMetadata {
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
-    
-    constructor(args: ControllerMetadataArgs) {
+
+    constructor(args: ControllerMetadataArgs, private getFromContainer: IGetFromContainer) {
         this.target = args.target;
         this.route = args.route;
         this.type = args.type;
@@ -72,7 +72,7 @@ export class ControllerMetadata {
      * Gets instance of the controller.
      */
     get instance(): any {
-        return getFromContainer(this.target);
+        return this.getFromContainer(this.target);
     }
 
     // -------------------------------------------------------------------------

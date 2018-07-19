@@ -7,6 +7,7 @@ import {RoutingControllers} from "./RoutingControllers";
 import {RoutingControllersOptions} from "./RoutingControllersOptions";
 import {ValidationOptions} from "class-validator";
 import {importClassesFromDirectories} from "./util/importClassesFromDirectories";
+import {init} from "./container";
 
 // -------------------------------------------------------------------------
 // Main exports
@@ -111,7 +112,7 @@ export function getMetadataArgsStorage(): MetadataArgsStorage {
  * Registers all loaded actions in your express application.
  */
 export function useExpressServer<T>(expressApp: T, options?: RoutingControllersOptions): T {
-    const driver = new ExpressDriver(expressApp);
+    const driver = new ExpressDriver(init(options && options.container), expressApp);
     return createServer(driver, options);
 }
 
@@ -119,7 +120,7 @@ export function useExpressServer<T>(expressApp: T, options?: RoutingControllersO
  * Registers all loaded actions in your express application.
  */
 export function createExpressServer(options?: RoutingControllersOptions): any {
-    const driver = new ExpressDriver();
+    const driver = new ExpressDriver(init(options && options.container));
     return createServer(driver, options);
 }
 
@@ -127,7 +128,7 @@ export function createExpressServer(options?: RoutingControllersOptions): any {
  * Registers all loaded actions in your koa application.
  */
 export function useKoaServer<T>(koaApp: T, options?: RoutingControllersOptions): T {
-    const driver = new KoaDriver(koaApp);
+    const driver = new KoaDriver(init(options && options.container), koaApp);
     return createServer(driver, options);
 }
 
@@ -135,7 +136,7 @@ export function useKoaServer<T>(koaApp: T, options?: RoutingControllersOptions):
  * Registers all loaded actions in your koa application.
  */
 export function createKoaServer(options?: RoutingControllersOptions): any {
-    const driver = new KoaDriver();
+    const driver = new KoaDriver(init(options && options.container));
     return createServer(driver, options);
 }
 

@@ -1,7 +1,7 @@
 import {MiddlewareMetadataArgs} from "./args/MiddlewareMetadataArgs";
 import {ExpressMiddlewareInterface} from "../driver/express/ExpressMiddlewareInterface";
 import {ExpressErrorMiddlewareInterface} from "../driver/express/ExpressErrorMiddlewareInterface";
-import {getFromContainer} from "../container";
+import {IGetFromContainer} from "../container";
 import {KoaMiddlewareInterface} from "../driver/koa/KoaMiddlewareInterface";
 
 /**
@@ -37,7 +37,7 @@ export class MiddlewareMetadata {
     // Constructor
     // -------------------------------------------------------------------------
     
-    constructor(args: MiddlewareMetadataArgs) {
+    constructor(args: MiddlewareMetadataArgs, private getFromContainer: IGetFromContainer) {
         this.global = args.global;
         this.target = args.target;
         this.priority = args.priority;
@@ -52,7 +52,7 @@ export class MiddlewareMetadata {
      * Gets middleware instance from the container.
      */
     get instance(): ExpressMiddlewareInterface|KoaMiddlewareInterface|ExpressErrorMiddlewareInterface {
-        return getFromContainer<ExpressMiddlewareInterface|KoaMiddlewareInterface|ExpressErrorMiddlewareInterface>(this.target);
+        return this.getFromContainer<ExpressMiddlewareInterface|KoaMiddlewareInterface|ExpressErrorMiddlewareInterface>(this.target);
     }
     
 }

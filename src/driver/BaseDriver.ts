@@ -8,6 +8,7 @@ import {ActionMetadata} from "../metadata/ActionMetadata";
 import {ParamMetadata} from "../metadata/ParamMetadata";
 import {MiddlewareMetadata} from "../metadata/MiddlewareMetadata";
 import {Action} from "../Action";
+import { IGetFromContainer } from "../container";
 
 /**
  * Base driver functionality for all other drivers.
@@ -87,6 +88,8 @@ export abstract class BaseDriver {
      * Special function used to get currently authorized user.
      */
     currentUserChecker?: CurrentUserChecker;
+
+    getFromContainer: IGetFromContainer;
 
     /**
      * Initializes the things driver needs before routes and middleware registration.

@@ -6,7 +6,7 @@ import {InterceptorInterface} from "./InterceptorInterface";
 import {InterceptorMetadata} from "./metadata/InterceptorMetadata";
 import {MetadataBuilder} from "./metadata-builder/MetadataBuilder";
 import {RoutingControllersOptions} from "./RoutingControllersOptions";
-import {getFromContainer} from "./container";
+import {IGetFromContainer} from "./container";
 import {isPromiseLike} from "./util/isPromiseLike";
 import {runInSequence} from "./util/runInSequence";
 
@@ -40,7 +40,7 @@ export class RoutingControllers<T extends BaseDriver> {
 
     constructor(private driver: T, private options: RoutingControllersOptions) {
         this.parameterHandler = new ActionParameterHandler(driver);
-        this.metadataBuilder = new MetadataBuilder(options);
+        this.metadataBuilder = new MetadataBuilder(options, this.driver.getFromContainer);
     }
 
     // -------------------------------------------------------------------------
@@ -171,8 +171,8 @@ export class RoutingControllers<T extends BaseDriver> {
     protected prepareInterceptors(uses: InterceptorMetadata[]): Function[] {
         return uses.map(use => {
             if (use.interceptor.prototype && use.interceptor.prototype.intercept) { // if this is function instance of InterceptorInterface
-                return function (action: Action, result: any) {
-                    return (getFromContainer(use.interceptor) as InterceptorInterface).intercept(action, result);
+                return (action: Action, result: any) => {
+                    return (this.driver.getFromContainer(use.interceptor) as InterceptorInterface).intercept(action, result);
                 };
             }
             return use.interceptor;

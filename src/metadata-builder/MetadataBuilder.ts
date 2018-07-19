@@ -8,13 +8,14 @@ import {ResponseHandlerMetadata} from "../metadata/ResponseHandleMetadata";
 import { RoutingControllersOptions } from "../RoutingControllersOptions";
 import {UseMetadata} from "../metadata/UseMetadata";
 import {getMetadataArgsStorage} from "../index";
+import { IGetFromContainer } from "../container";
 
 /**
  * Builds metadata from the given metadata arguments.
  */
 export class MetadataBuilder {
 
-    constructor(private options: RoutingControllersOptions) { }
+    constructor(private options: RoutingControllersOptions, private getFromContainer: IGetFromContainer) { }
 
     // -------------------------------------------------------------------------
     // Public Methods
@@ -50,7 +51,7 @@ export class MetadataBuilder {
      */
     protected createMiddlewares(classes?: Function[]): MiddlewareMetadata[] {
         const middlewares = !classes ? getMetadataArgsStorage().middlewares : getMetadataArgsStorage().filterMiddlewareMetadatasForClasses(classes);
-        return middlewares.map(middlewareArgs => new MiddlewareMetadata(middlewareArgs));
+        return middlewares.map(middlewareArgs => new MiddlewareMetadata(middlewareArgs, this.getFromContainer));
     }
 
     /**
@@ -71,7 +72,7 @@ export class MetadataBuilder {
     protected createControllers(classes?: Function[]): ControllerMetadata[] {
         const controllers = !classes ? getMetadataArgsStorage().controllers : getMetadataArgsStorage().filterControllerMetadatasForClasses(classes);
         return controllers.map(controllerArgs => {
-            const controller = new ControllerMetadata(controllerArgs);
+            const controller = new ControllerMetadata(controllerArgs, this.getFromContainer);
             controller.build(this.createControllerResponseHandlers(controller));
             controller.actions = this.createActions(controller);
             controller.uses = this.createControllerUses(controller);

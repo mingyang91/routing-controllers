@@ -41,7 +41,12 @@ export class KoaDriver extends BaseDriver {
      */
     initialize() {
         const bodyParser = require("koa-bodyparser");
-        this.koa.use(bodyParser());
+        this.koa.use(bodyParser({
+            extendTypes: {
+                text: ["application/xml", "text/xml"],
+              },
+            enableTypes: ["json", "form", "text"],
+        }));
         if (this.cors) {
             const cors = require("kcors");
             if (this.cors === true) {

@@ -50,7 +50,7 @@ export class Gulpfile {
     npmPublish() {
         return gulp.src("*.js", { read: false })
             .pipe(shell([
-                "cd ./build/package && npm publish"
+                "cd ./build/package && npm publish --access=public"
             ]));
     }
 
